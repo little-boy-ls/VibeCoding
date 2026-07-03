@@ -2,7 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-/** GitHub Pages 项目站：https://<user>.github.io/VibeCoding/ */
+/** GitHub Pages：https://little-boy-ls.github.io/VibeCoding/ */
 export default defineConfig({
   base: '/VibeCoding/',
   plugins: [vue()],
