@@ -4,11 +4,12 @@ import { onMounted, onUnmounted, ref } from 'vue'
 
 const works = getPublishedWorks()
 const scrolled = ref(false)
-const active = ref<'works' | 'album' | ''>('')
+const active = ref<'works' | 'skills' | 'album' | ''>('')
 
 const links = [
   { to: '/#works', label: '作品', idx: '01', zone: 'works' as const },
   { to: `/#${works[0]?.id ?? 'works'}`, label: '实录', idx: '02', zone: 'album' as const },
+  { to: '/#skills', label: '技能', idx: '03', zone: 'skills' as const },
 ]
 
 function onScroll() {
@@ -22,12 +23,28 @@ function onScroll() {
     if (r.top <= window.innerHeight * 0.55 && r.bottom > 100) inAlbum = true
   }
 
+  const skillsEl = document.getElementById('skills')
   const worksEl = document.getElementById('works')
-  if (worksEl) {
+
+  if (inAlbum) {
+    active.value = 'album'
+  } else if (skillsEl) {
+    const sr = skillsEl.getBoundingClientRect()
+    if (sr.top <= window.innerHeight * 0.55 && sr.bottom > 100) {
+      active.value = 'skills'
+    } else if (worksEl) {
+      const wr = worksEl.getBoundingClientRect()
+      if (wr.top <= window.innerHeight * 0.55 && wr.bottom > 100) active.value = 'works'
+      else active.value = ''
+    } else {
+      active.value = ''
+    }
+  } else if (worksEl) {
     const r = worksEl.getBoundingClientRect()
-    if (inAlbum) active.value = 'album'
-    else if (r.top <= window.innerHeight * 0.55 && r.bottom > 100) active.value = 'works'
+    if (r.top <= window.innerHeight * 0.55 && r.bottom > 100) active.value = 'works'
     else active.value = ''
+  } else {
+    active.value = ''
   }
 }
 

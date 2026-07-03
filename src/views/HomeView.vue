@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import WorkAlbum from '@/components/WorkAlbum.vue'
 import SectionMarquee from '@/components/SectionMarquee.vue'
+import SkillsMindmap from '@/components/SkillsMindmap.vue'
 import { getPublishedWorks, portfolioWorks, siteMeta } from '@/data/portfolio'
 import type { PortfolioWork } from '@/data/portfolio'
 import { useReveal } from '@/composables/useReveal'
@@ -188,6 +189,8 @@ function scrollToWork(workId: string) {
       :work-summary="work.summary"
       :clients="work.clients"
     />
+
+    <SkillsMindmap />
 
     <!-- 光标跟随封面预览（桌面） -->
     <div

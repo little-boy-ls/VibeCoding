@@ -17,6 +17,7 @@ import { siteMeta } from '@/data/portfolio'
         <p class="foot__label">导航</p>
         <RouterLink to="/">首页</RouterLink>
         <RouterLink to="/#works">作品目录</RouterLink>
+        <RouterLink to="/#skills">专业技能</RouterLink>
         <RouterLink to="/#code-verse">界面实录</RouterLink>
       </div>
 

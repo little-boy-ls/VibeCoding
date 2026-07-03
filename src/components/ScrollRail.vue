@@ -10,6 +10,7 @@ const works = getPublishedWorks()
 const sections = [
   { id: 'works', label: '作品目录' },
   ...works.map(w => ({ id: w.id, label: w.title })),
+  { id: 'skills', label: '专业技能' },
 ]
 
 const progress = ref(0)
