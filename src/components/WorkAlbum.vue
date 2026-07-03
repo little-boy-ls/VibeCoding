@@ -1,0 +1,510 @@
+<script setup lang="ts">
+import type { CaptureSlide, ClientKey } from '@/data/portfolio'
+import { useReveal } from '@/composables/useReveal'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+
+const props = defineProps<{
+  workId: string
+  workIndex: string
+  captures: CaptureSlide[]
+  workTitle: string
+  workSummary?: string
+  clients?: { key: ClientKey; label?: string }[]
+}>()
+
+const AUTOPLAY_MS = 5200
+
+const defaultClientLabels: Record<ClientKey, string> = {
+  app: '移动端 · UniApp',
+  user: 'PC 用户站',
+  admin: '管理后台 · Vben',
+}
+
+function clientLabel(key: ClientKey) {
+  return props.clients?.find(c => c.key === key)?.label ?? defaultClientLabels[key]
+}
+
+const clientTypes = computed(() => new Set(props.captures.map(c => c.client)))
+const showTabs = computed(() => clientTypes.value.size > 1)
+
+const tabs: { key: ClientKey | 'all'; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'app', label: '移动端' },
+  { key: 'user', label: 'PC 站' },
+  { key: 'admin', label: '管理端' },
+]
+
+const visibleTabs = computed(() =>
+  tabs.filter(t => t.key === 'all' || clientTypes.value.has(t.key as ClientKey)),
+)
+
+const activeTab = ref<ClientKey | 'all'>('all')
+const current = ref(0)
+const paused = ref(false)
+const barKey = ref(0)
+
+const filtered = computed(() =>
+  activeTab.value === 'all'
+    ? props.captures
+    : props.captures.filter(c => c.client === activeTab.value),
+)
+
+const slide = computed(() => filtered.value[current.value] ?? filtered.value[0])
+const total = computed(() => filtered.value.length)
+
+let timer: ReturnType<typeof setInterval> | null = null
+
+function startTimer() {
+  stopTimer()
+  if (total.value <= 1) return
+  timer = setInterval(() => {
+    if (!paused.value) advance()
+  }, AUTOPLAY_MS)
+}
+
+function stopTimer() {
+  if (timer) clearInterval(timer)
+  timer = null
+}
+
+function advance() {
+  if (total.value <= 1) return
+  barKey.value += 1
+  current.value = (current.value + 1) % total.value
+}
+
+function goTo(i: number) {
+  current.value = i
+  barKey.value += 1
+}
+
+function setTab(key: ClientKey | 'all') {
+  activeTab.value = key
+}
+
+watch(activeTab, () => {
+  current.value = 0
+  barKey.value += 1
+  mediaRotateX.value = 0
+  mediaRotateY.value = 0
+  startTimer()
+})
+
+watch(current, () => {
+  mediaRotateX.value = 0
+  mediaRotateY.value = 0
+})
+
+watch(total, () => {
+  if (current.value >= total.value) current.value = 0
+})
+
+const { el: introEl, visible: introVisible } = useReveal()
+
+const mediaRef = ref<HTMLElement | null>(null)
+const mediaRotateX = ref(0)
+const mediaRotateY = ref(0)
+
+function onMediaMove(e: MouseEvent) {
+  const el = mediaRef.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const px = (e.clientX - rect.left) / rect.width - 0.5
+  const py = (e.clientY - rect.top) / rect.height - 0.5
+  mediaRotateX.value = py * -2.5
+  mediaRotateY.value = px * 3.5
+}
+
+function onMediaLeave() {
+  mediaRotateX.value = 0
+  mediaRotateY.value = 0
+}
+
+onMounted(startTimer)
+onUnmounted(stopTimer)
+</script>
+
+<template>
+  <section :id="workId" class="album">
+    <div
+      ref="introEl"
+      class="album__intro reveal"
+      :class="{ 'is-visible': introVisible }"
+    >
+      <p class="label">{{ workIndex }} · {{ workTitle }}</p>
+      <h2 class="album__title">界面与功能设计</h2>
+      <p v-if="workSummary" class="album__lead">{{ workSummary }}</p>
+    </div>
+
+    <div
+      class="album__stage"
+      @mouseenter="paused = true"
+      @mouseleave="paused = false"
+    >
+      <nav v-if="showTabs" class="album__tabs" aria-label="端切换">
+        <button
+          v-for="t in visibleTabs"
+          :key="t.key"
+          type="button"
+          class="album__tab"
+          :class="{ 'album__tab--on': activeTab === t.key }"
+          @click="setTab(t.key)"
+        >
+          {{ t.label }}
+        </button>
+      </nav>
+
+      <div class="album__panel">
+        <Transition name="album" mode="out-in">
+          <div v-if="slide" :key="`${activeTab}-${current}`" class="album__row">
+            <div
+              ref="mediaRef"
+              class="album__media-scene"
+              :class="{ 'album__media-scene--phone': slide.client === 'app' }"
+              @mousemove="onMediaMove"
+              @mouseleave="onMediaLeave"
+            >
+              <div
+                class="album__media"
+                :style="{
+                  transform: `rotateX(${1 + mediaRotateX}deg) rotateY(${-2 + mediaRotateY}deg)`,
+                }"
+              >
+                <img :src="slide.image" :alt="slide.title" />
+              </div>
+            </div>
+
+            <div class="album__copy">
+              <p class="label album__anim">{{ clientLabel(slide.client) }}</p>
+              <h3 class="album__anim">{{ slide.title }}</h3>
+              <p class="album__summary album__anim">{{ slide.caption }}</p>
+              <p class="album__detail album__anim">{{ slide.detail }}</p>
+              <ul v-if="slide.highlights?.length" class="album__list">
+                <li
+                  v-for="(h, hi) in slide.highlights"
+                  :key="h"
+                  class="album__anim"
+                  :style="{ '--i': hi }"
+                >
+                  {{ h }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </Transition>
+
+        <div class="album__foot">
+          <div class="album__progress">
+            <div
+              :key="barKey"
+              class="album__progress-fill"
+              :class="{ 'album__progress-fill--paused': paused }"
+              :style="{ animationDuration: `${AUTOPLAY_MS}ms` }"
+            />
+          </div>
+          <div class="album__controls">
+            <span class="album__counter">{{ current + 1 }} / {{ total }}</span>
+            <div class="album__dots">
+              <button
+                v-for="(_, i) in filtered"
+                :key="i"
+                type="button"
+                class="album__dot"
+                :class="{ 'album__dot--on': i === current }"
+                :aria-label="`第 ${i + 1} 屏`"
+                @click="goTo(i)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<style scoped>
+.album {
+  padding: clamp(4rem, 10vw, 6rem) 0;
+  background: linear-gradient(180deg, #ffffff 0%, #f5faff 100%);
+  border-top: 1px solid var(--line);
+}
+
+.album__intro {
+  width: min(var(--max), 88vw);
+  margin: 0 auto 2.5rem;
+}
+
+.album__title {
+  font-size: clamp(32px, 5vw, 44px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin: 0.45rem 0 0.75rem;
+}
+
+.album__lead {
+  max-width: 36rem;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.album__stage {
+  width: min(var(--wide), 92vw);
+  margin-inline: auto;
+}
+
+.album__tabs {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 2rem;
+}
+
+.album__tab {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding-bottom: 0.65rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.25s, border-color 0.25s;
+}
+
+.album__tab--on {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.album__panel {
+  background: var(--white);
+  border: 1px solid var(--line);
+}
+
+.album__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(2rem, 4vw, 3.5rem);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  align-items: start;
+}
+
+.album__media-scene {
+  perspective: 1400px;
+  perspective-origin: 50% 50%;
+}
+
+.album__media-scene--phone {
+  max-width: 280px;
+  margin-inline: auto;
+  width: 100%;
+}
+
+.album__media {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  overflow: hidden;
+  transform-style: preserve-3d;
+  transition: transform 0.6s var(--ease-out);
+  box-shadow: 0 12px 28px rgb(0 112 204 / 0.08);
+  will-change: transform;
+}
+
+.album__media img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+
+.album__anim {
+  animation: copy-in 0.75s var(--ease-out) both;
+}
+
+.album__copy .label.album__anim {
+  animation-delay: 0.05s;
+}
+
+.album__copy h3.album__anim {
+  animation-delay: 0.1s;
+}
+
+.album__copy .album__summary.album__anim {
+  animation-delay: 0.16s;
+}
+
+.album__copy .album__detail.album__anim {
+  animation-delay: 0.22s;
+}
+
+.album__list li.album__anim {
+  animation-delay: calc(0.28s + var(--i, 0) * 0.06s);
+}
+
+@keyframes copy-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.album__copy h3 {
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0.35rem 0 0.75rem;
+  line-height: 1.15;
+}
+
+.album__summary {
+  font-size: 15px;
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 0.85rem;
+}
+
+.album__detail {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 1.25rem;
+}
+
+.album__list {
+  list-style: none;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.album__list li {
+  font-size: 13px;
+  color: var(--text);
+  padding-left: 0.85rem;
+  position: relative;
+  line-height: 1.5;
+}
+
+.album__list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.album__foot {
+  border-top: 1px solid var(--line);
+  padding: 0.85rem 1.5rem 1.25rem;
+}
+
+.album__progress {
+  height: 2px;
+  background: var(--line);
+  margin-bottom: 0.85rem;
+  overflow: hidden;
+}
+
+.album__progress-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  animation: bar-fill linear forwards;
+}
+
+.album__progress-fill--paused {
+  animation-play-state: paused;
+}
+
+.album__controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.album__counter {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.album__dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.album__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+  padding: 0;
+  transition: background 0.25s, transform 0.25s;
+}
+
+.album__dot--on {
+  background: var(--accent);
+  transform: scale(1.25);
+}
+
+.album-enter-active,
+.album-leave-active {
+  transition: opacity 0.65s var(--ease-out), transform 0.65s var(--ease-out);
+}
+
+.album-enter-active .album__media img {
+  animation: media-in 0.85s var(--ease-out) both;
+}
+
+.album-leave-active .album__media img {
+  transition: opacity 0.4s, transform 0.4s var(--ease-out);
+}
+
+.album-enter-from {
+  opacity: 0;
+}
+
+.album-leave-to {
+  opacity: 0;
+}
+
+.album-enter-from .album__media img {
+  opacity: 0;
+  transform: scale(1.015);
+}
+
+.album-leave-to .album__media img {
+  opacity: 0;
+  transform: scale(0.985);
+}
+
+@keyframes media-in {
+  from {
+    opacity: 0;
+    transform: scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .album__row {
+    grid-template-columns: 1fr;
+  }
+
+  .album__media-scene--phone {
+    max-width: 220px;
+  }
+}
+</style>
