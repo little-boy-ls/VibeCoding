@@ -1,18 +1,56 @@
 <script setup lang="ts">
-import { siteMeta } from '@/data/portfolio'
+import { siteMeta, getPublishedWorks } from '@/data/portfolio'
+import { onMounted, onUnmounted, ref } from 'vue'
+
+const works = getPublishedWorks()
+const scrolled = ref(false)
+
+const links = [
+  { to: '/#works', label: '作品', idx: '01' },
+  { to: `/#${works[0]?.id ?? 'works'}`, label: '界面', idx: '02' },
+]
+
+function onScroll() {
+  scrolled.value = window.scrollY > 40
+}
+
+onMounted(() => {
+  onScroll()
+  window.addEventListener('scroll', onScroll, { passive: true })
+})
+onUnmounted(() => window.removeEventListener('scroll', onScroll))
 </script>
 
 <template>
-  <header class="nav">
+  <header class="nav" :class="{ 'nav--solid': scrolled }">
     <div class="nav__inner">
       <RouterLink to="/" class="nav__brand">
-        <img :src="siteMeta.logo" alt="" width="32" height="32" class="logo-round" />
-        <span>{{ siteMeta.brand }}</span>
+        <img :src="siteMeta.logo" alt="" width="30" height="30" class="logo-round" />
+        <span class="nav__name">{{ siteMeta.brand }}</span>
+        <span class="nav__slash">/</span>
+        <span class="nav__en">{{ siteMeta.enTitle }}</span>
       </RouterLink>
+
       <nav class="nav__links">
-        <RouterLink to="/#works">作品</RouterLink>
-        <RouterLink to="/#code-verse">界面</RouterLink>
+        <RouterLink v-for="l in links" :key="l.to" :to="l.to" class="nav__link">
+          <span class="nav__link-idx">{{ l.idx }}</span>
+          <span class="nav__link-text" :data-text="l.label">{{ l.label }}</span>
+        </RouterLink>
+        <a
+          href="https://github.com/little-boy-ls/VibeCoding"
+          target="_blank"
+          rel="noreferrer"
+          class="nav__link nav__link--ext"
+        >
+          <span class="nav__link-text" data-text="GitHub">GitHub</span>
+          <span class="nav__arrow" aria-hidden="true">↗</span>
+        </a>
       </nav>
+
+      <div class="nav__status" aria-hidden="true">
+        <span class="nav__dot" />
+        <span class="nav__status-text">Online · 2026</span>
+      </div>
     </div>
   </header>
 </template>
@@ -20,48 +58,178 @@ import { siteMeta } from '@/data/portfolio'
 <style scoped>
 .nav {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  inset: 0 0 auto 0;
   z-index: 200;
-  background: rgba(255, 255, 255, 0.92);
-  border-bottom: 1px solid var(--line);
+  height: var(--nav-h);
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition: background 0.4s var(--ease-out), border-color 0.4s var(--ease-out),
+    backdrop-filter 0.4s;
+}
+
+.nav--solid {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(150%) blur(12px);
+  border-bottom-color: var(--line);
 }
 
 .nav__inner {
   width: min(var(--wide), 92vw);
   margin-inline: auto;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 48px;
+  gap: 1.5rem;
 }
 
+/* brand */
 .nav__brand {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  font-size: 14px;
 }
 
 .nav__brand img {
-  box-shadow: 0 0 0 1px rgb(0 112 204 / 0.1);
+  box-shadow: 0 0 0 1px rgb(10 37 64 / 0.12);
 }
 
+.nav__name {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.nav__slash {
+  color: var(--text-muted);
+}
+
+.nav__en {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* links */
 .nav__links {
   display: flex;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 2rem;
+  margin-left: auto;
 }
 
-.nav__links a {
+.nav__link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
   font-size: 13px;
-  color: var(--text-secondary);
-  transition: color 0.2s;
+  color: var(--ink);
 }
 
-.nav__links a:hover {
+.nav__link-idx {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
   color: var(--accent);
+  opacity: 0.7;
+}
+
+/* wipe underline */
+.nav__link-text {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.nav__link-text::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s var(--ease-io);
+}
+
+.nav__link:hover .nav__link-text::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.nav__link:hover .nav__link-text {
+  color: var(--accent);
+}
+
+.nav__arrow {
+  font-size: 12px;
+  color: var(--accent);
+  transition: transform 0.35s var(--ease-out);
+}
+
+.nav__link--ext:hover .nav__arrow {
+  transform: translate(2px, -2px);
+}
+
+/* status */
+.nav__status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding-left: 1.5rem;
+  border-left: 1px solid var(--line);
+}
+
+.nav__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2ea043;
+  box-shadow: 0 0 0 0 rgb(46 160 67 / 0.5);
+  animation: pulse 2.4s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(46 160 67 / 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgb(46 160 67 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(46 160 67 / 0);
+  }
+}
+
+@media (max-width: 860px) {
+  .nav__status {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .nav__en,
+  .nav__slash {
+    display: none;
+  }
+
+  .nav__links {
+    gap: 1.25rem;
+  }
+
+  .nav__link-idx {
+    display: none;
+  }
 }
 </style>

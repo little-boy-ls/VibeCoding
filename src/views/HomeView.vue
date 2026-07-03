@@ -1,12 +1,45 @@
 <script setup lang="ts">
 import WorkAlbum from '@/components/WorkAlbum.vue'
 import { getPublishedWorks, portfolioWorks, siteMeta } from '@/data/portfolio'
+import type { PortfolioWork } from '@/data/portfolio'
 import { useReveal } from '@/composables/useReveal'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 const publishedWorks = getPublishedWorks()
 
-const { el: heroEl, visible: heroVisible } = useReveal(0.2)
+const ready = ref(false)
+function onIntroDone() {
+  ready.value = true
+}
+onMounted(() => {
+  window.addEventListener('intro:done', onIntroDone)
+  // 兜底：即便未收到事件也在 Loader 结束后揭示
+  window.setTimeout(() => (ready.value = true), 4200)
+})
+onUnmounted(() => window.removeEventListener('intro:done', onIntroDone))
+
 const { el: shelfEl, visible: shelfVisible } = useReveal()
+
+const heroStats = [
+  { k: 'Projects', v: String(publishedWorks.length).padStart(2, '0') },
+  { k: 'Year', v: '2026' },
+  { k: 'Scope', v: '全栈 · 三端' },
+]
+
+const hoverWork = ref<PortfolioWork | null>(null)
+const mx = ref(0)
+const my = ref(0)
+
+function onRowEnter(w: PortfolioWork) {
+  if (w.status === 'published') hoverWork.value = w
+}
+function onRowLeave() {
+  hoverWork.value = null
+}
+function onListMove(e: MouseEvent) {
+  mx.value = e.clientX
+  my.value = e.clientY
+}
 
 function scrollToWork(workId: string) {
   document.getElementById(workId)?.scrollIntoView({ behavior: 'smooth' })
@@ -26,43 +59,81 @@ function scrollToWork(workId: string) {
           playsinline
           preload="auto"
         />
+        <div class="hero__scrim" />
       </div>
-      <div ref="heroEl" class="hero__inner reveal" :class="{ 'is-visible': heroVisible }">
-        <img :src="siteMeta.logo" alt="" class="hero__logo logo-round" width="64" height="64" />
-        <p class="label">{{ siteMeta.enTitle }}</p>
-        <h1>{{ siteMeta.brand }}</h1>
-        <p class="hero__sub">{{ siteMeta.tagline }}</p>
-        <p v-if="siteMeta.description" class="hero__desc">{{ siteMeta.description }}</p>
-        <a href="#works" class="hero__link">浏览作品</a>
+
+      <div class="hero__inner" :class="{ 'is-ready': ready }">
+        <p class="eyebrow hero__eyebrow">{{ siteMeta.enTitle }} — Portfolio</p>
+        <h1 class="hero__title">
+          <span class="hero__mask"><span class="hero__line-a">{{ siteMeta.brand }}</span></span>
+          <span class="hero__mask"><span class="hero__line-b">{{ siteMeta.tagline }}</span></span>
+        </h1>
+
+        <div class="hero__meta">
+          <div v-for="s in heroStats" :key="s.k" class="hero__stat">
+            <span class="hero__stat-k">{{ s.k }}</span>
+            <span class="hero__stat-v">{{ s.v }}</span>
+          </div>
+        </div>
       </div>
-      <div class="hero__line" aria-hidden="true" />
+
+      <a href="#works" class="hero__scroll" :class="{ 'is-ready': ready }" aria-label="向下浏览">
+        <span>Scroll</span>
+        <span class="hero__scroll-line" />
+      </a>
     </section>
 
     <section id="works" class="shelf">
-      <div ref="shelfEl" class="shelf__head reveal" :class="{ 'is-visible': shelfVisible }">
-        <p class="label">Collection</p>
-        <h2>作品目录</h2>
+      <div ref="shelfEl" class="shelf__head" :class="{ 'is-visible': shelfVisible }">
+        <p class="eyebrow">Selected Work</p>
+        <h2 class="shelf__title">作品目录</h2>
+        <p class="shelf__count-total">{{ String(portfolioWorks.length).padStart(2, '0') }} 个项目</p>
       </div>
-      <div class="shelf__list">
+
+      <div
+        class="shelf__list"
+        :class="{ 'is-hovering': hoverWork, 'is-visible': shelfVisible }"
+        @mousemove="onListMove"
+      >
         <article
-          v-for="work in portfolioWorks"
+          v-for="(work, ri) in portfolioWorks"
           :key="work.id"
-          class="shelf__item"
-          :class="{ 'shelf__item--off': work.status === 'draft' }"
+          class="row"
+          :style="{ '--ri': ri }"
+          :class="{
+            'row--off': work.status === 'draft',
+            'row--dim': hoverWork && hoverWork.id !== work.id,
+          }"
+          @mouseenter="onRowEnter(work)"
+          @mouseleave="onRowLeave"
           @click="work.status === 'published' && scrollToWork(work.id)"
         >
-          <div class="shelf__cover">
-            <img :src="work.cover" :alt="work.title" loading="lazy" />
+          <span class="row__idx">{{ work.index }}</span>
+
+          <div class="row__main">
+            <h3 class="row__title">{{ work.title }}</h3>
+            <p class="row__sub">{{ work.subtitle }}</p>
           </div>
-          <div class="shelf__meta">
-            <span class="shelf__idx">{{ work.index }}</span>
-            <h3>{{ work.title }}</h3>
-            <p class="shelf__sub">{{ work.subtitle }}</p>
-            <p v-if="work.status === 'published'" class="shelf__sum">{{ work.tagline }}</p>
-            <span v-if="work.status === 'published'" class="shelf__count">
-              {{ work.captures.length }} 屏实机截图
+
+          <div class="row__tags">
+            <template v-if="work.status === 'published'">
+              <span v-for="c in work.clients" :key="c.key" class="row__tag">
+                {{ c.desc }}
+              </span>
+            </template>
+            <span v-else class="row__tag row__tag--muted">筹备中</span>
+          </div>
+
+          <div class="row__end">
+            <span class="row__year">{{ work.year }}</span>
+            <span class="row__arrow" aria-hidden="true">
+              {{ work.status === 'published' ? '→' : '·' }}
             </span>
-            <span v-else class="shelf__count shelf__count--muted">筹备中</span>
+          </div>
+
+          <!-- 移动端行内缩略图 -->
+          <div v-if="work.status === 'published'" class="row__thumb">
+            <img :src="work.cover" :alt="work.title" loading="lazy" />
           </div>
         </article>
       </div>
@@ -78,18 +149,30 @@ function scrollToWork(workId: string) {
       :work-summary="work.summary"
       :clients="work.clients"
     />
+
+    <!-- 光标跟随封面预览（桌面） -->
+    <div
+      class="preview"
+      :class="{ 'preview--on': hoverWork }"
+      :style="{ transform: `translate3d(${mx}px, ${my}px, 0)` }"
+      aria-hidden="true"
+    >
+      <div class="preview__frame">
+        <img v-if="hoverWork" :src="hoverWork.cover" :alt="hoverWork.title" />
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+/* ============ HERO ============ */
 .hero {
-  min-height: calc(100vh - 48px);
-  min-height: calc(100dvh - 48px);
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 1.5rem 3rem;
+  justify-content: flex-end;
+  padding: 6rem clamp(1.25rem, 4vw, 3rem) clamp(2.5rem, 6vw, 4rem);
   position: relative;
   overflow: hidden;
 }
@@ -108,232 +191,429 @@ function scrollToWork(workId: string) {
   display: block;
 }
 
+.hero__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.1) 0%, rgb(255 255 255 / 0) 30%),
+    linear-gradient(0deg, rgb(255 255 255 / 0.72) 0%, rgb(255 255 255 / 0) 46%);
+}
+
 .hero__inner {
   position: relative;
   z-index: 1;
-  text-align: center;
-  max-width: 32rem;
-  text-shadow:
-    0 0 24px rgb(255 255 255 / 0.95),
-    0 1px 2px rgb(255 255 255 / 0.8);
+  width: min(var(--wide), 92vw);
+  margin-inline: auto;
 }
 
-.hero__inner.is-visible .hero__logo {
-  animation: hero-in 0.9s var(--ease-out) both;
-}
-
-.hero__inner.is-visible .label {
-  animation: hero-in 0.9s var(--ease-out) 0.08s both;
-}
-
-.hero__inner.is-visible h1 {
-  animation: hero-in 1s var(--ease-out) 0.14s both;
-}
-
-.hero__inner.is-visible .hero__sub {
-  animation: hero-in 1s var(--ease-out) 0.22s both;
-}
-
-.hero__inner.is-visible .hero__desc {
-  animation: hero-in 1s var(--ease-out) 0.3s both;
-}
-
-.hero__inner.is-visible .hero__link {
-  animation: hero-in 1s var(--ease-out) 0.38s both;
-}
-
-.hero__logo {
-  margin: 0 auto 1.5rem;
+.hero__eyebrow {
+  margin-bottom: 1.25rem;
   opacity: 0;
-  box-shadow:
-    0 0 0 3px rgb(255 255 255 / 0.95),
-    0 0 0 4px rgb(0 112 204 / 0.12),
-    0 8px 24px rgb(0 112 204 / 0.1);
+  transform: translateY(12px);
+  transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
 }
 
-.hero__inner h1 {
-  font-size: clamp(44px, 9vw, 72px);
+.hero__inner.is-ready .hero__eyebrow {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.05s;
+}
+
+.hero__title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28em;
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
   line-height: 1;
-  margin-bottom: 0.65rem;
-  opacity: 0;
+  color: var(--ink);
 }
 
-.hero__sub {
-  font-size: clamp(20px, 3.5vw, 26px);
-  color: var(--accent);
+/* 遮罩逐行揭示 */
+.hero__mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.16em;
+  margin-bottom: -0.16em;
+}
+
+.hero__line-a,
+.hero__line-b {
+  display: block;
+  line-height: 1.08;
+  transform: translateY(115%);
+  transition: transform 1.05s var(--ease-io);
+}
+
+.hero__inner.is-ready .hero__line-a {
+  transform: none;
+  transition-delay: 0.12s;
+}
+
+.hero__inner.is-ready .hero__line-b {
+  transform: none;
+  transition-delay: 0.24s;
+}
+
+.hero__line-a {
+  font-size: clamp(52px, 9vw, 108px);
+}
+
+.hero__line-b {
+  font-size: clamp(18px, 2.6vw, 32px);
   font-weight: 500;
-  margin-bottom: 0.75rem;
-  opacity: 0;
-}
-
-.hero__desc {
-  font-size: 15px;
-  color: var(--text-muted);
-  line-height: 1.65;
-  margin-bottom: 1.75rem;
-  opacity: 0;
-}
-
-.hero__link {
-  display: inline-block;
-  font-size: 14px;
-  font-weight: 500;
+  letter-spacing: -0.02em;
   color: var(--accent);
-  padding-bottom: 2px;
-  border-bottom: 1px solid var(--accent);
+}
+
+.hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(2rem, 5vw, 4rem);
+  margin-top: clamp(2rem, 4vw, 3rem);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
   opacity: 0;
-  transition: color 0.25s, border-color 0.25s;
+  transform: translateY(14px);
+  transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out);
 }
 
-.hero__link:hover {
-  color: var(--accent-hover);
-  border-bottom-color: var(--accent-hover);
+.hero__inner.is-ready .hero__meta {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.42s;
 }
 
-.hero__line {
+.hero__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.hero__stat-k {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.hero__stat-v {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.hero__scroll {
   position: absolute;
-  bottom: 3rem;
-  width: 1px;
-  height: 48px;
-  background: var(--accent);
-  opacity: 0.35;
-  transform-origin: top;
-  animation: hero-line 2.4s var(--ease-out) infinite;
+  right: clamp(1.25rem, 4vw, 3rem);
+  bottom: clamp(2.5rem, 6vw, 4rem);
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  writing-mode: vertical-rl;
+  opacity: 0;
+  transition: opacity 1s var(--ease-out);
 }
 
-@keyframes hero-in {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.hero__scroll.is-ready {
+  opacity: 1;
+  transition-delay: 0.6s;
 }
 
-@keyframes hero-line {
-  0%,
-  100% {
-    transform: scaleY(0.35);
-    opacity: 0.35;
+.hero__scroll-line {
+  width: 1px;
+  height: 46px;
+  background: var(--accent);
+  transform-origin: top;
+  animation: scroll-drop 2.2s var(--ease-io) infinite;
+}
+
+@keyframes scroll-drop {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
   }
-  50% {
+  40% {
     transform: scaleY(1);
-    opacity: 1;
+    transform-origin: top;
+  }
+  60% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
   }
 }
 
+@media (max-width: 640px) {
+  .hero__scroll {
+    display: none;
+  }
+}
+
+/* ============ SHELF (作品目录) ============ */
 .shelf {
-  padding: clamp(4rem, 9vw, 6rem) 0;
-  background: linear-gradient(180deg, #eef6ff 0%, #f7fbff 50%, #ffffff 100%);
+  padding: clamp(4.5rem, 10vw, 8rem) 0;
+  background: linear-gradient(180deg, #ffffff 0%, #f5faff 100%);
   border-top: 1px solid var(--line);
 }
 
 .shelf__head {
-  width: min(var(--max), 88vw);
-  margin: 0 auto 2.5rem;
+  width: min(var(--wide), 92vw);
+  margin: 0 auto clamp(2.5rem, 5vw, 4rem);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 1rem;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out);
 }
 
-.shelf__head h2 {
-  font-size: clamp(28px, 4vw, 40px);
+.shelf__head.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.shelf__title {
+  grid-column: 1;
+  font-size: clamp(40px, 7vw, 92px);
   font-weight: 600;
-  letter-spacing: -0.02em;
-  margin-top: 0.4rem;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-top: 0.6rem;
+  color: var(--ink);
+}
+
+.shelf__count-total {
+  grid-column: 2;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
 }
 
 .shelf__list {
   width: min(var(--wide), 92vw);
   margin-inline: auto;
-  display: grid;
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
+  border-top: 1px solid var(--ink);
 }
 
-.shelf__item {
+/* editorial row */
+.row {
+  position: relative;
   display: grid;
-  grid-template-columns: 180px 1fr;
-  gap: 2rem;
+  grid-template-columns: 80px minmax(0, 1fr) auto auto;
   align-items: center;
-  padding: 1.75rem 2rem;
-  background: var(--white);
+  gap: clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(1.5rem, 3vw, 2.4rem) 0.5rem;
+  border-bottom: 1px solid var(--grid-line);
   cursor: pointer;
-  transition: background 0.4s var(--ease-out);
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out),
+    background 0.4s var(--ease-out);
 }
 
-.shelf__item:hover:not(.shelf__item--off) {
-  background: var(--accent-light);
+.shelf__list.is-visible .row {
+  opacity: 1;
+  transform: none;
+  transition-delay: calc(var(--ri, 0) * 0.09s);
 }
 
-.shelf__item--off {
+.row--off {
   cursor: default;
-  opacity: 0.55;
 }
 
-.shelf__cover {
-  aspect-ratio: 9 / 14;
+.shelf__list.is-visible.is-hovering .row {
+  transition-delay: 0s;
+}
+
+.shelf__list.is-hovering .row--dim {
+  opacity: 0.32;
+}
+
+.row__idx {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+.row__title {
+  font-size: clamp(28px, 5vw, 58px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  color: var(--ink);
+  transition: transform 0.5s var(--ease-io), color 0.3s;
+}
+
+.row:not(.row--off):hover .row__title {
+  transform: translateX(18px);
+  color: var(--accent);
+}
+
+.row__sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  transition: transform 0.5s var(--ease-io);
+}
+
+.row:not(.row--off):hover .row__sub {
+  transform: translateX(18px);
+}
+
+.row__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  max-width: 240px;
+}
+
+.row__tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.row__tag--muted {
+  color: var(--text-muted);
+}
+
+.row__end {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.row__year {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.row__arrow {
+  font-size: 20px;
+  color: var(--accent);
+  transition: transform 0.45s var(--ease-io);
+}
+
+.row:not(.row--off):hover .row__arrow {
+  transform: translateX(8px);
+}
+
+.row__thumb {
+  display: none;
+}
+
+/* ============ 光标跟随预览 ============ */
+.preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.preview__frame {
+  width: 240px;
+  height: 320px;
+  margin: -160px 0 0 -120px;
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--bg);
+  box-shadow: 0 24px 60px rgb(10 37 64 / 0.22);
+  opacity: 0;
+  transform: scale(0.9) rotate(-3deg);
+  transition: opacity 0.4s var(--ease-out), transform 0.5s var(--ease-io);
 }
 
-.shelf__cover img {
+.preview--on .preview__frame {
+  opacity: 1;
+  transform: scale(1) rotate(-2deg);
+}
+
+.preview__frame img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: top;
-  transition: transform 1s var(--ease-out);
 }
 
-.shelf__item:hover:not(.shelf__item--off) .shelf__cover img {
-  transform: scale(1.02);
+@media (hover: none) {
+  .preview {
+    display: none;
+  }
 }
 
-.shelf__idx {
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  color: var(--accent-muted);
-}
+/* ============ 响应式 ============ */
+@media (max-width: 860px) {
+  .row {
+    grid-template-columns: 48px 1fr auto;
+  }
 
-.shelf__meta h3 {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin: 0.2rem 0 0.25rem;
-}
-
-.shelf__sub {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.shelf__sum {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-top: 0.5rem;
-  line-height: 1.55;
-}
-
-.shelf__count {
-  display: inline-block;
-  margin-top: 0.65rem;
-  font-size: 12px;
-  color: var(--accent);
-}
-
-.shelf__count--muted {
-  color: var(--text-muted);
+  .row__tags {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
-  .shelf__item {
-    grid-template-columns: 96px 1fr;
-    padding: 1.25rem;
+  .shelf__head {
+    grid-template-columns: 1fr;
+  }
+
+  .shelf__count-total {
+    grid-column: 1;
+  }
+
+  .row {
+    grid-template-columns: 40px 1fr;
     gap: 1rem;
+    align-items: start;
+  }
+
+  .row__end {
+    display: none;
+  }
+
+  .row__thumb {
+    display: block;
+    grid-column: 2;
+    margin-top: 1rem;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+
+  .row__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+  }
+
+  .row:not(.row--off):hover .row__title,
+  .row:not(.row--off):hover .row__sub {
+    transform: none;
   }
 }
 </style>

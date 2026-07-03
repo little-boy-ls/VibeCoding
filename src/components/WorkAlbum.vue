@@ -126,12 +126,14 @@ onUnmounted(stopTimer)
 
 <template>
   <section :id="workId" class="album">
+    <span class="album__watermark" aria-hidden="true">{{ workIndex }}</span>
+
     <div
       ref="introEl"
-      class="album__intro reveal"
+      class="album__intro"
       :class="{ 'is-visible': introVisible }"
     >
-      <p class="label">{{ workIndex }} · {{ workTitle }}</p>
+      <p class="eyebrow">{{ workIndex }} — {{ workTitle }}</p>
       <h2 class="album__title">界面与功能设计</h2>
       <p v-if="workSummary" class="album__lead">{{ workSummary }}</p>
     </div>
@@ -141,18 +143,25 @@ onUnmounted(stopTimer)
       @mouseenter="paused = true"
       @mouseleave="paused = false"
     >
-      <nav v-if="showTabs" class="album__tabs" aria-label="端切换">
-        <button
-          v-for="t in visibleTabs"
-          :key="t.key"
-          type="button"
-          class="album__tab"
-          :class="{ 'album__tab--on': activeTab === t.key }"
-          @click="setTab(t.key)"
-        >
-          {{ t.label }}
-        </button>
-      </nav>
+      <div class="album__bar">
+        <nav v-if="showTabs" class="album__tabs" aria-label="端切换">
+          <button
+            v-for="t in visibleTabs"
+            :key="t.key"
+            type="button"
+            class="album__tab"
+            :class="{ 'album__tab--on': activeTab === t.key }"
+            @click="setTab(t.key)"
+          >
+            {{ t.label }}
+          </button>
+        </nav>
+        <span class="album__index">
+          <span class="album__index-cur">{{ String(current + 1).padStart(2, '0') }}</span>
+          <span class="album__index-sep">/</span>
+          <span class="album__index-total">{{ String(total).padStart(2, '0') }}</span>
+        </span>
+      </div>
 
       <div class="album__panel">
         <Transition name="album" mode="out-in">
@@ -175,7 +184,7 @@ onUnmounted(stopTimer)
             </div>
 
             <div class="album__copy">
-              <p class="label album__anim">{{ clientLabel(slide.client) }}</p>
+              <p class="eyebrow album__anim">{{ clientLabel(slide.client) }}</p>
               <h3 class="album__anim">{{ slide.title }}</h3>
               <p class="album__summary album__anim">{{ slide.caption }}</p>
               <p class="album__detail album__anim">{{ slide.detail }}</p>
@@ -203,7 +212,7 @@ onUnmounted(stopTimer)
             />
           </div>
           <div class="album__controls">
-            <span class="album__counter">{{ current + 1 }} / {{ total }}</span>
+            <span class="album__title-cur">{{ slide?.title }}</span>
             <div class="album__dots">
               <button
                 v-for="(_, i) in filtered"
@@ -224,57 +233,110 @@ onUnmounted(stopTimer)
 
 <style scoped>
 .album {
-  padding: clamp(4rem, 10vw, 6rem) 0;
+  position: relative;
+  padding: clamp(4.5rem, 10vw, 7rem) 0;
   background: linear-gradient(180deg, #ffffff 0%, #f5faff 100%);
   border-top: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.album__watermark {
+  position: absolute;
+  top: clamp(1rem, 3vw, 2.5rem);
+  right: clamp(-1rem, 2vw, 2rem);
+  font-family: var(--font-mono);
+  font-size: clamp(140px, 26vw, 340px);
+  font-weight: 700;
+  line-height: 0.8;
+  color: var(--accent);
+  opacity: 0.05;
+  pointer-events: none;
+  user-select: none;
 }
 
 .album__intro {
-  width: min(var(--max), 88vw);
-  margin: 0 auto 2.5rem;
+  position: relative;
+  width: min(var(--wide), 92vw);
+  margin: 0 auto 2.75rem;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out);
+}
+
+.album__intro.is-visible {
+  opacity: 1;
+  transform: none;
 }
 
 .album__title {
-  font-size: clamp(32px, 5vw, 44px);
+  font-size: clamp(34px, 6vw, 68px);
   font-weight: 600;
-  letter-spacing: -0.025em;
-  margin: 0.45rem 0 0.75rem;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  margin: 0.75rem 0 1rem;
+  color: var(--ink);
 }
 
 .album__lead {
-  max-width: 36rem;
+  max-width: 42rem;
   color: var(--text-secondary);
   font-size: 15px;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 
 .album__stage {
+  position: relative;
   width: min(var(--wide), 92vw);
   margin-inline: auto;
 }
 
+.album__bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--ink);
+  margin-bottom: 1.75rem;
+}
+
 .album__tabs {
   display: flex;
-  gap: 1.5rem;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 2rem;
+  gap: 1.75rem;
 }
 
 .album__tab {
   font-size: 13px;
   color: var(--text-secondary);
-  padding-bottom: 0.65rem;
+  padding-bottom: 0.7rem;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   transition: color 0.25s, border-color 0.25s;
 }
 
 .album__tab--on {
-  color: var(--text);
+  color: var(--ink);
   border-bottom-color: var(--accent);
 }
 
+.album__index {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  padding-bottom: 0.7rem;
+  color: var(--text-muted);
+}
+
+.album__index-cur {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.album__index-sep {
+  margin: 0 0.3rem;
+}
+
 .album__panel {
+  position: relative;
   background: var(--white);
   border: 1px solid var(--line);
 }
@@ -429,10 +491,15 @@ onUnmounted(stopTimer)
   gap: 1rem;
 }
 
-.album__counter {
+.album__title-cur {
   font-size: 12px;
   font-family: var(--font-mono);
+  letter-spacing: 0.04em;
   color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
 }
 
 .album__dots {
