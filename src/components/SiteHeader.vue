@@ -4,14 +4,31 @@ import { onMounted, onUnmounted, ref } from 'vue'
 
 const works = getPublishedWorks()
 const scrolled = ref(false)
+const active = ref<'works' | 'album' | ''>('')
 
 const links = [
-  { to: '/#works', label: '作品', idx: '01' },
-  { to: `/#${works[0]?.id ?? 'works'}`, label: '界面', idx: '02' },
+  { to: '/#works', label: '作品', idx: '01', zone: 'works' as const },
+  { to: `/#${works[0]?.id ?? 'works'}`, label: '实录', idx: '02', zone: 'album' as const },
 ]
 
 function onScroll() {
   scrolled.value = window.scrollY > 40
+
+  let inAlbum = false
+  for (const w of works) {
+    const el = document.getElementById(w.id)
+    if (!el) continue
+    const r = el.getBoundingClientRect()
+    if (r.top <= window.innerHeight * 0.55 && r.bottom > 100) inAlbum = true
+  }
+
+  const worksEl = document.getElementById('works')
+  if (worksEl) {
+    const r = worksEl.getBoundingClientRect()
+    if (inAlbum) active.value = 'album'
+    else if (r.top <= window.innerHeight * 0.55 && r.bottom > 100) active.value = 'works'
+    else active.value = ''
+  }
 }
 
 onMounted(() => {
@@ -32,9 +49,15 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
       </RouterLink>
 
       <nav class="nav__links">
-        <RouterLink v-for="l in links" :key="l.to" :to="l.to" class="nav__link">
+        <RouterLink
+          v-for="l in links"
+          :key="l.to"
+          :to="l.to"
+          class="nav__link"
+          :class="{ 'nav__link--active': active === l.zone }"
+        >
           <span class="nav__link-idx">{{ l.idx }}</span>
-          <span class="nav__link-text" :data-text="l.label">{{ l.label }}</span>
+          <span class="nav__link-text">{{ l.label }}</span>
         </RouterLink>
         <a
           href="https://github.com/little-boy-ls/VibeCoding"
@@ -42,7 +65,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
           rel="noreferrer"
           class="nav__link nav__link--ext"
         >
-          <span class="nav__link-text" data-text="GitHub">GitHub</span>
+          <span class="nav__link-text">GitHub</span>
           <span class="nav__arrow" aria-hidden="true">↗</span>
         </a>
       </nav>
@@ -83,7 +106,6 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   gap: 1.5rem;
 }
 
-/* brand */
 .nav__brand {
   display: flex;
   align-items: center;
@@ -113,7 +135,6 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   color: var(--text-secondary);
 }
 
-/* links */
 .nav__links {
   display: flex;
   align-items: center;
@@ -137,7 +158,6 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   opacity: 0.7;
 }
 
-/* wipe underline */
 .nav__link-text {
   position: relative;
   display: inline-block;
@@ -158,12 +178,14 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   transition: transform 0.4s var(--ease-io);
 }
 
-.nav__link:hover .nav__link-text::after {
+.nav__link:hover .nav__link-text::after,
+.nav__link--active .nav__link-text::after {
   transform: scaleX(1);
   transform-origin: left;
 }
 
-.nav__link:hover .nav__link-text {
+.nav__link:hover .nav__link-text,
+.nav__link--active .nav__link-text {
   color: var(--accent);
 }
 
@@ -177,7 +199,6 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
   transform: translate(2px, -2px);
 }
 
-/* status */
 .nav__status {
   display: flex;
   align-items: center;

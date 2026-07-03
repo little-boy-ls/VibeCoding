@@ -78,6 +78,26 @@ function goTo(i: number) {
   barKey.value += 1
 }
 
+function prev() {
+  if (total.value <= 1) return
+  barKey.value += 1
+  current.value = (current.value - 1 + total.value) % total.value
+}
+
+function onKey(e: KeyboardEvent) {
+  const el = document.getElementById(props.workId)
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  if (r.bottom < 80 || r.top > window.innerHeight - 80) return
+  if (e.key === 'ArrowRight') {
+    e.preventDefault()
+    advance()
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault()
+    prev()
+  }
+}
+
 function setTab(key: ClientKey | 'all') {
   activeTab.value = key
 }
@@ -120,8 +140,14 @@ function onMediaLeave() {
   mediaRotateY.value = 0
 }
 
-onMounted(startTimer)
-onUnmounted(stopTimer)
+onMounted(() => {
+  startTimer()
+  window.addEventListener('keydown', onKey)
+})
+onUnmounted(() => {
+  stopTimer()
+  window.removeEventListener('keydown', onKey)
+})
 </script>
 
 <template>
@@ -202,6 +228,21 @@ onUnmounted(stopTimer)
           </div>
         </Transition>
 
+        <div v-if="filtered.length > 1" class="album__film">
+          <button
+            v-for="(item, i) in filtered"
+            :key="`${item.image}-${i}`"
+            type="button"
+            class="album__thumb"
+            :class="{ 'album__thumb--on': i === current }"
+            :aria-label="item.title"
+            @click="goTo(i)"
+          >
+            <img :src="item.image" alt="" loading="lazy" />
+            <span class="album__thumb-num">{{ String(i + 1).padStart(2, '0') }}</span>
+          </button>
+        </div>
+
         <div class="album__foot">
           <div class="album__progress">
             <div
@@ -212,7 +253,15 @@ onUnmounted(stopTimer)
             />
           </div>
           <div class="album__controls">
-            <span class="album__title-cur">{{ slide?.title }}</span>
+            <div class="album__nav">
+              <button type="button" class="album__nav-btn" aria-label="上一屏" @click="prev">
+                ←
+              </button>
+              <span class="album__title-cur">{{ slide?.title }}</span>
+              <button type="button" class="album__nav-btn" aria-label="下一屏" @click="advance">
+                →
+              </button>
+            </div>
             <div class="album__dots">
               <button
                 v-for="(_, i) in filtered"
@@ -465,6 +514,79 @@ onUnmounted(stopTimer)
   padding: 0.85rem 1.5rem 1.25rem;
 }
 
+/* 胶片缩略条 */
+.album__film {
+  display: flex;
+  gap: 0.65rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--line);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.album__thumb {
+  flex-shrink: 0;
+  position: relative;
+  width: 72px;
+  aspect-ratio: 9 / 14;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  opacity: 0.45;
+  scroll-snap-align: start;
+  transition: opacity 0.35s, border-color 0.35s, transform 0.35s var(--ease-io);
+}
+
+.album__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.album__thumb-num {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: #fff;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+
+.album__thumb--on,
+.album__thumb:hover {
+  opacity: 1;
+  border-color: var(--accent);
+  transform: translateY(-3px);
+}
+
+.album__nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.album__nav-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--ink);
+  transition: border-color 0.25s, color 0.25s, background 0.25s;
+}
+
+.album__nav-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
 .album__progress {
   height: 2px;
   background: var(--line);
@@ -499,7 +621,8 @@ onUnmounted(stopTimer)
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 60%;
+  flex: 1;
+  text-align: center;
 }
 
 .album__dots {

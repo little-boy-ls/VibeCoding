@@ -205,3 +205,13 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+html.has-cursor,
+html.has-cursor * {
+  cursor: none !important;
+}
+
+html.has-cursor a,
+html.has-cursor button {
+  cursor: none !important;
+}

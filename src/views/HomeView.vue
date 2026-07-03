@@ -1,24 +1,36 @@
 <script setup lang="ts">
 import WorkAlbum from '@/components/WorkAlbum.vue'
+import SectionMarquee from '@/components/SectionMarquee.vue'
 import { getPublishedWorks, portfolioWorks, siteMeta } from '@/data/portfolio'
 import type { PortfolioWork } from '@/data/portfolio'
 import { useReveal } from '@/composables/useReveal'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { useScrollPastHero } from '@/composables/useScrollPastHero'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 
 const publishedWorks = getPublishedWorks()
 
 const ready = ref(false)
+const heroScrollIntro = ref(true)
 function onIntroDone() {
   ready.value = true
 }
 onMounted(() => {
   window.addEventListener('intro:done', onIntroDone)
-  // 兜底：即便未收到事件也在 Loader 结束后揭示
+  window.addEventListener('scroll', onScroll, { passive: true })
+  onScroll()
   window.setTimeout(() => (ready.value = true), 4200)
 })
-onUnmounted(() => window.removeEventListener('intro:done', onIntroDone))
+onUnmounted(() => {
+  window.removeEventListener('intro:done', onIntroDone)
+  window.removeEventListener('scroll', onScroll)
+})
 
 const { el: shelfEl, visible: shelfVisible } = useReveal()
+const { pastHero } = useScrollPastHero()
+
+watch(pastHero, v => {
+  if (v) heroScrollIntro.value = false
+})
 
 const heroStats = [
   { k: 'Projects', v: String(publishedWorks.length).padStart(2, '0') },
@@ -29,16 +41,29 @@ const heroStats = [
 const hoverWork = ref<PortfolioWork | null>(null)
 const mx = ref(0)
 const my = ref(0)
+const panX = ref(0)
+const panY = ref(0)
+const heroScale = ref(1)
+
+function onScroll() {
+  const y = window.scrollY
+  heroScale.value = 1 + Math.min(y * 0.00012, 0.06)
+}
 
 function onRowEnter(w: PortfolioWork) {
   if (w.status === 'published') hoverWork.value = w
 }
 function onRowLeave() {
   hoverWork.value = null
+  panX.value = 0
+  panY.value = 0
 }
 function onListMove(e: MouseEvent) {
   mx.value = e.clientX
   my.value = e.clientY
+  if (!hoverWork.value) return
+  panX.value = (e.clientX - window.innerWidth / 2) * 0.018
+  panY.value = (e.clientY - window.innerHeight / 2) * 0.018
 }
 
 function scrollToWork(workId: string) {
@@ -52,6 +77,7 @@ function scrollToWork(workId: string) {
       <div class="hero__media" aria-hidden="true">
         <video
           class="hero__video"
+          :style="{ transform: `scale(${heroScale})` }"
           :src="siteMeta.heroVideo"
           autoplay
           muted
@@ -77,7 +103,16 @@ function scrollToWork(workId: string) {
         </div>
       </div>
 
-      <a href="#works" class="hero__scroll" :class="{ 'is-ready': ready }" aria-label="向下浏览">
+      <a
+        href="#works"
+        class="hero__scroll"
+        :class="{
+          'is-ready': ready,
+          'is-away': pastHero,
+          'is-intro': heroScrollIntro,
+        }"
+        aria-label="向下浏览"
+      >
         <span>Scroll</span>
         <span class="hero__scroll-line" />
       </a>
@@ -139,6 +174,10 @@ function scrollToWork(workId: string) {
       </div>
     </section>
 
+    <SectionMarquee
+      text="VibeCoding · Full Stack · Code-Verse · Void Expedition · Interface Design · 2026 · "
+    />
+
     <WorkAlbum
       v-for="work in publishedWorks"
       :key="work.id"
@@ -158,7 +197,12 @@ function scrollToWork(workId: string) {
       aria-hidden="true"
     >
       <div class="preview__frame">
-        <img v-if="hoverWork" :src="hoverWork.cover" :alt="hoverWork.title" />
+        <img
+          v-if="hoverWork"
+          :src="hoverWork.cover"
+          :alt="hoverWork.title"
+          :style="{ transform: `translate(${panX}px, ${panY}px) scale(1.08)` }"
+        />
       </div>
     </div>
   </div>
@@ -189,6 +233,9 @@ function scrollToWork(workId: string) {
   object-fit: cover;
   object-position: center;
   display: block;
+  transform-origin: center center;
+  transition: transform 0.15s linear;
+  will-change: transform;
 }
 
 .hero__scrim {
@@ -320,12 +367,21 @@ function scrollToWork(workId: string) {
   color: var(--ink);
   writing-mode: vertical-rl;
   opacity: 0;
-  transition: opacity 1s var(--ease-out);
+  pointer-events: none;
+  transition: opacity 0.6s var(--ease-out);
 }
 
-.hero__scroll.is-ready {
+.hero__scroll.is-ready:not(.is-away) {
   opacity: 1;
+  pointer-events: auto;
+}
+
+.hero__scroll.is-intro.is-ready:not(.is-away) {
   transition-delay: 0.6s;
+}
+
+.hero__scroll.is-away {
+  transition-delay: 0s;
 }
 
 .hero__scroll-line {
@@ -520,6 +576,23 @@ function scrollToWork(workId: string) {
   transform: translateX(8px);
 }
 
+.row::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.55s var(--ease-io);
+}
+
+.row:not(.row--off):hover::after {
+  transform: scaleX(1);
+}
+
 .row__thumb {
   display: none;
 }
@@ -557,6 +630,8 @@ function scrollToWork(workId: string) {
   height: 100%;
   object-fit: cover;
   object-position: top;
+  transition: transform 0.5s var(--ease-io);
+  will-change: transform;
 }
 
 @media (hover: none) {

@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { useScrollPastHero } from '@/composables/useScrollPastHero'
 import { getPublishedWorks } from '@/data/portfolio'
 import { onMounted, onUnmounted, ref } from 'vue'
+
+const { pastHero } = useScrollPastHero()
 
 const works = getPublishedWorks()
 
@@ -11,13 +14,11 @@ const sections = [
 
 const progress = ref(0)
 const active = ref(0)
-const started = ref(false)
 
 function onScroll() {
   const doc = document.documentElement
   const max = doc.scrollHeight - doc.clientHeight
   progress.value = max > 0 ? Math.min(1, Math.max(0, doc.scrollTop / max)) : 0
-  started.value = doc.scrollTop > 40
 
   let idx = 0
   for (let i = 0; i < sections.length; i++) {
@@ -43,7 +44,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <aside class="rail" :class="{ 'rail--on': started }" aria-hidden="true">
+  <aside class="rail" :class="{ 'rail--on': pastHero }" aria-hidden="true">
     <div class="rail__pct">
       <span class="rail__pct-num">{{ String(Math.round(progress * 100)).padStart(2, '0') }}</span>
       <span class="rail__pct-sign">%</span>
@@ -81,12 +82,19 @@ onUnmounted(() => {
   align-items: flex-end;
   gap: 1rem;
   opacity: 0;
-  transition: opacity 0.6s var(--ease-out);
+  visibility: hidden;
+  transition:
+    opacity 0.6s var(--ease-out),
+    visibility 0s linear 0.6s;
   pointer-events: none;
 }
 
 .rail--on {
   opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.6s var(--ease-out),
+    visibility 0s linear 0s;
   pointer-events: auto;
 }
 
