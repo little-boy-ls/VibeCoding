@@ -1,3 +1,5 @@
+import { asset } from '@/utils/asset'
+
 export type ClientKey = 'app' | 'user' | 'admin'
 
 export interface CaptureSlide {
@@ -29,13 +31,13 @@ export const siteMeta = {
   enTitle: 'VibeCoding',
   tagline: 'VibeCoding 全栈作品集',
   description: '',
-  logo: '/assets/banner.png',
-  heroVideo: '/assets/hero-bg-hd.mp4',
+  logo: asset('assets/banner.png'),
+  heroVideo: asset('assets/hero-bg-hd.mp4'),
   stack: ['Spring Boot · cverse', 'UniApp', 'Vue PC', 'Vben Admin'],
 }
 
-const cap = (client: ClientKey, n: number) => `/assets/captures/${client}/${n}.png`
-const gameCap = (n: number) => `/assets/gaems-yuanzheng/${n}.png`
+const cap = (client: ClientKey, n: number) => asset(`assets/captures/${client}/${n}.png`)
+const gameCap = (n: number) => asset(`assets/gaems-yuanzheng/${n}.png`)
 
 const mk = (
   client: ClientKey,
