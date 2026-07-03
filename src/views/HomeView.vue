@@ -176,7 +176,7 @@ function scrollToWork(workId: string) {
     </section>
 
     <SectionMarquee
-      text="VibeCoding · Full Stack · Code-Verse · Void Expedition · Interface Design · 2026 · "
+      text="VibeCoding · Full Stack · Code-Verse · Void Expedition · Stack High · Interface Design · 2026 · "
     />
 
     <WorkAlbum
