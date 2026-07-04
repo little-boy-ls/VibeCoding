@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { useScrollPastHero } from '@/composables/useScrollPastHero'
 import { getPublishedWorks } from '@/data/portfolio'
+import { getPublishedAgents } from '@/data/agents'
 import { onMounted, onUnmounted, ref } from 'vue'
 
 const { pastHero } = useScrollPastHero()
 
 const works = getPublishedWorks()
+const agents = getPublishedAgents()
 
 const sections = [
   { id: 'works', label: '作品目录' },
   ...works.map(w => ({ id: w.id, label: w.title })),
+  { id: 'agents', label: 'Agent 开发' },
+  ...agents.map(a => ({ id: a.id, label: a.title })),
   { id: 'skills', label: '专业技能' },
 ]
 

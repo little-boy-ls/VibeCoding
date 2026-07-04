@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { siteMeta, getPublishedWorks } from '@/data/portfolio'
+import { getPublishedAgents } from '@/data/agents'
 import { onMounted, onUnmounted, ref } from 'vue'
 
 const works = getPublishedWorks()
+const agents = getPublishedAgents()
 const scrolled = ref(false)
-const active = ref<'works' | 'skills' | 'album' | ''>('')
+const active = ref<'works' | 'album' | 'agents' | 'skills' | ''>('')
 
 const links = [
   { to: '/#works', label: '作品', idx: '01', zone: 'works' as const },
   { to: `/#${works[0]?.id ?? 'works'}`, label: '实录', idx: '02', zone: 'album' as const },
-  { to: '/#skills', label: '技能', idx: '03', zone: 'skills' as const },
+  { to: '/#agents', label: 'Agent', idx: '03', zone: 'agents' as const },
+  { to: '/#skills', label: '技能', idx: '04', zone: 'skills' as const },
 ]
 
 function onScroll() {
@@ -23,15 +26,36 @@ function onScroll() {
     if (r.top <= window.innerHeight * 0.55 && r.bottom > 100) inAlbum = true
   }
 
+  let inAgents = false
+  for (const a of agents) {
+    const el = document.getElementById(a.id)
+    if (!el) continue
+    const r = el.getBoundingClientRect()
+    if (r.top <= window.innerHeight * 0.55 && r.bottom > 100) inAgents = true
+  }
+
+  const agentsEl = document.getElementById('agents')
   const skillsEl = document.getElementById('skills')
   const worksEl = document.getElementById('works')
 
-  if (inAlbum) {
+  if (inAgents) {
+    active.value = 'agents'
+  } else if (inAlbum) {
     active.value = 'album'
   } else if (skillsEl) {
     const sr = skillsEl.getBoundingClientRect()
     if (sr.top <= window.innerHeight * 0.55 && sr.bottom > 100) {
       active.value = 'skills'
+    } else if (agentsEl) {
+      const ar = agentsEl.getBoundingClientRect()
+      if (ar.top <= window.innerHeight * 0.55 && ar.bottom > 100) active.value = 'agents'
+      else if (worksEl) {
+        const wr = worksEl.getBoundingClientRect()
+        if (wr.top <= window.innerHeight * 0.55 && wr.bottom > 100) active.value = 'works'
+        else active.value = ''
+      } else {
+        active.value = ''
+      }
     } else if (worksEl) {
       const wr = worksEl.getBoundingClientRect()
       if (wr.top <= window.innerHeight * 0.55 && wr.bottom > 100) active.value = 'works'

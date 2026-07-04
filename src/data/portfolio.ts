@@ -1,6 +1,6 @@
 import { asset } from '@/utils/asset'
 
-export type ClientKey = 'app' | 'user' | 'admin'
+export type ClientKey = 'app' | 'user' | 'admin' | 'workflow' | 'bot'
 
 export interface CaptureSlide {
   image: string

@@ -17,15 +17,16 @@ import { siteMeta } from '@/data/portfolio'
         <p class="foot__label">导航</p>
         <RouterLink to="/">首页</RouterLink>
         <RouterLink to="/#works">作品目录</RouterLink>
+        <RouterLink to="/#agents">Agent 开发</RouterLink>
         <RouterLink to="/#skills">专业技能</RouterLink>
         <RouterLink to="/#code-verse">界面实录</RouterLink>
       </div>
 
       <div class="foot__col">
-        <p class="foot__label">Code-Verse</p>
-        <span>移动端 15 屏</span>
-        <span>PC 站 7 屏</span>
-        <span>管理端 17 屏</span>
+        <p class="foot__label">Agent</p>
+        <span>Coze 工作流</span>
+        <span>Bot 配置</span>
+        <span>GPT Image 2</span>
       </div>
 
       <div class="foot__col">

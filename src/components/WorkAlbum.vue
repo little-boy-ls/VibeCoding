@@ -10,6 +10,7 @@ const props = defineProps<{
   workTitle: string
   workSummary?: string
   clients?: { key: ClientKey; label?: string }[]
+  albumTitle?: string
 }>()
 
 const AUTOPLAY_MS = 5200
@@ -18,6 +19,8 @@ const defaultClientLabels: Record<ClientKey, string> = {
   app: '移动端 · UniApp',
   user: 'PC 用户站',
   admin: '管理后台 · Vben',
+  workflow: '工作流编排',
+  bot: 'Bot 配置',
 }
 
 function clientLabel(key: ClientKey) {
@@ -32,6 +35,8 @@ const tabs: { key: ClientKey | 'all'; label: string }[] = [
   { key: 'app', label: '移动端' },
   { key: 'user', label: 'PC 站' },
   { key: 'admin', label: '管理端' },
+  { key: 'workflow', label: '工作流' },
+  { key: 'bot', label: 'Bot' },
 ]
 
 const visibleTabs = computed(() =>
@@ -160,7 +165,7 @@ onUnmounted(() => {
       :class="{ 'is-visible': introVisible }"
     >
       <p class="eyebrow">{{ workIndex }} — {{ workTitle }}</p>
-      <h2 class="album__title">界面与功能设计</h2>
+      <h2 class="album__title">{{ albumTitle ?? '界面与功能设计' }}</h2>
       <p v-if="workSummary" class="album__lead">{{ workSummary }}</p>
     </div>
 

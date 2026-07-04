@@ -2,6 +2,8 @@
 import WorkAlbum from '@/components/WorkAlbum.vue'
 import SectionMarquee from '@/components/SectionMarquee.vue'
 import SkillsMindmap from '@/components/SkillsMindmap.vue'
+import { getPublishedAgents, agentModules } from '@/data/agents'
+import type { AgentModule } from '@/data/agents'
 import { getPublishedWorks, portfolioWorks, siteMeta } from '@/data/portfolio'
 import type { PortfolioWork } from '@/data/portfolio'
 import { useReveal } from '@/composables/useReveal'
@@ -9,6 +11,7 @@ import { useScrollPastHero } from '@/composables/useScrollPastHero'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 
 const publishedWorks = getPublishedWorks()
+const publishedAgents = getPublishedAgents()
 
 const ready = ref(false)
 const heroScrollIntro = ref(true)
@@ -27,6 +30,7 @@ onUnmounted(() => {
 })
 
 const { el: shelfEl, visible: shelfVisible } = useReveal()
+const { el: agentShelfEl, visible: agentShelfVisible } = useReveal()
 const { pastHero } = useScrollPastHero()
 
 watch(pastHero, v => {
@@ -39,7 +43,7 @@ const heroStats = [
   { k: 'Scope', v: '全栈 · 三端' },
 ]
 
-const hoverWork = ref<PortfolioWork | null>(null)
+const hoverWork = ref<PortfolioWork | AgentModule | null>(null)
 const mx = ref(0)
 const my = ref(0)
 const panX = ref(0)
@@ -51,7 +55,7 @@ function onScroll() {
   heroScale.value = 1 + Math.min(y * 0.00012, 0.06)
 }
 
-function onRowEnter(w: PortfolioWork) {
+function onRowEnter(w: PortfolioWork | AgentModule) {
   if (w.status === 'published') hoverWork.value = w
 }
 function onRowLeave() {
@@ -190,6 +194,77 @@ function scrollToWork(workId: string) {
       :clients="work.clients"
     />
 
+    <SectionMarquee
+      text="Agent Dev · Coze Workflow · Bot Config · GPT Image 2 · VibeCoding · 2026 · "
+    />
+
+    <section id="agents" class="shelf shelf--agents">
+      <div ref="agentShelfEl" class="shelf__head" :class="{ 'is-visible': agentShelfVisible }">
+        <p class="eyebrow">Agent Development</p>
+        <h2 class="shelf__title">Agent 开发</h2>
+        <p class="shelf__count-total">{{ String(agentModules.length).padStart(2, '0') }} 个平台</p>
+      </div>
+
+      <div
+        class="shelf__list"
+        :class="{ 'is-hovering': hoverWork, 'is-visible': agentShelfVisible }"
+        @mousemove="onListMove"
+      >
+        <article
+          v-for="(agent, ri) in agentModules"
+          :key="agent.id"
+          class="row"
+          :style="{ '--ri': ri }"
+          :class="{
+            'row--off': agent.status === 'draft',
+            'row--dim': hoverWork && hoverWork.id !== agent.id,
+          }"
+          @mouseenter="onRowEnter(agent)"
+          @mouseleave="onRowLeave"
+          @click="agent.status === 'published' && scrollToWork(agent.id)"
+        >
+          <span class="row__idx">{{ agent.index }}</span>
+
+          <div class="row__main">
+            <h3 class="row__title">{{ agent.title }}</h3>
+            <p class="row__sub">{{ agent.subtitle }}</p>
+          </div>
+
+          <div class="row__tags">
+            <template v-if="agent.status === 'published'">
+              <span v-for="c in agent.clients" :key="c.key" class="row__tag">
+                {{ c.desc }}
+              </span>
+            </template>
+            <span v-else class="row__tag row__tag--muted">筹备中</span>
+          </div>
+
+          <div class="row__end">
+            <span class="row__year">{{ agent.year }}</span>
+            <span class="row__arrow" aria-hidden="true">
+              {{ agent.status === 'published' ? '→' : '·' }}
+            </span>
+          </div>
+
+          <div v-if="agent.status === 'published'" class="row__thumb">
+            <img :src="agent.cover" :alt="agent.title" loading="lazy" />
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <WorkAlbum
+      v-for="agent in publishedAgents"
+      :key="agent.id"
+      :work-id="agent.id"
+      :work-index="agent.index"
+      :captures="agent.captures"
+      :work-title="agent.title"
+      :work-summary="agent.summary"
+      :clients="agent.clients"
+      album-title="工作流与 Bot 配置"
+    />
+
     <SkillsMindmap />
 
     <!-- 光标跟随封面预览（桌面） -->
@@ -212,6 +287,10 @@ function scrollToWork(workId: string) {
 </template>
 
 <style scoped>
+.shelf--agents {
+  background: linear-gradient(180deg, #f5faff 0%, #ffffff 100%);
+}
+
 /* ============ HERO ============ */
 .hero {
   min-height: 100vh;
