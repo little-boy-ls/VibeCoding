@@ -2,9 +2,9 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-/** GitHub Pages：https://little-boy-ls.github.io/VibeCoding/ */
+/** 自定义域名：https://ly-vibecoding.com */
 export default defineConfig({
-  base: '/VibeCoding/',
+  base: '/',
   plugins: [vue()],
   resolve: {
     alias: {
