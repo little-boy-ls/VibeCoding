@@ -129,6 +129,55 @@ const voidCaptures: CaptureSlide[] = [
 ]
 
 const dieCap = (n: number) => asset(`assets/games-die/${n}.png`)
+const toolCap = (n: number) => asset(`assets/tools/${n}.png`)
+
+function mkTool(
+  n: number,
+  title: string,
+  caption: string,
+  detail: string,
+  highlights: string[],
+): CaptureSlide {
+  return { image: toolCap(n), title, caption, detail, highlights, client: 'app' }
+}
+
+const tickOffCaptures: CaptureSlide[] = [
+  mkTool(
+    1,
+    '倒计时首页',
+    '昼夜天空 · 狐狸 mascot · 三种模式',
+    '首页「下钟」：顶部 Tab 切换上班 / 上课 / 发工资，右侧日 / 月切换昼夜天空。狐狸 mascot 探出卡片，大号倒计时 227:09:35，下方心情文案与目标时间行，四宫格快捷入口与「生成打卡海报」主按钮，底部悬浮圆角 Tab。',
+    ['上班 / 上课 / 发工资三模式', '昼夜天空主题切换', '狐狸 mascot + 实时倒计时'],
+  ),
+  mkTool(
+    2,
+    '海报弹层',
+    '保存分享 · 风景背景 · 打工人文案',
+    '从首页一键生成打卡海报：半屏弹层预览海报，背景为湖景照片，叠加倒计时、发薪日与 #打工人自嘲 标签，底部「保存到手机 / 分享好友」，支持长按图片保存。',
+    ['一键生成分享图', '倒计时 + 心情文案', '保存 / 分享双 CTA'],
+  ),
+  mkTool(
+    3,
+    '打卡海报',
+    '样式配置 · 文案标签 · 实时预览',
+    '海报 Tab：居中标题「打卡海报」，上方实时预览 TickPosterCanvas，下方配置倒计时类型（上班 / 上课 / 发工资）、海报样式（简约白卡 / 风景背景）、文案标签与随机换一句，一键生成可分享图。',
+    ['类型 / 样式 Segmented 切换', '文案标签 + 随机换句', 'Canvas 实时预览'],
+  ),
+  mkTool(
+    4,
+    '打卡日记',
+    'GitHub 热力图 · 连续打卡 · 时间线',
+    '日记 Tab：2026 年 GitHub 风格打卡热力图，连续打卡 1 天与超越用户百分比统计。下方按月份展示打卡时间线，卡片含模式 Tag、文案与配图，形成「看一眼就知道这一年怎么熬过来的」记录。',
+    ['年度热力图', '连续打卡统计', '按月时间线 + 配图'],
+  ),
+  mkTool(
+    5,
+    '设置',
+    '目标时间 · 昼夜 · 提醒 · 背景',
+    '设置 Tab：目标时间区配置上班 09:00、上课 08:30、发薪日每月 15 号；外观区切换首页天空（自动 / 白天 / 黑夜）与默认海报背景四选一；提醒区上班前 10 分钟推送开关，以及清除缓存 / 导出配置。',
+    ['三类目标时间', '昼夜天空 + 海报背景', '提醒与数据管理'],
+  ),
+]
 
 const stackCaptures: CaptureSlide[] = [
   mkGame('主页', '每日目标 · 团子养成 · 图鉴收集', '首页「叠高高 · 对准落块 · 叠向软软云」：顶部成就进度与礼包入口，中部预览多彩软糖叠塔。下方今日小目标（叠到 9 层）、本周挑战（0/14 层）、团子 Lv.1 养成条、图鉴 0/4，「开始叠~」主按钮与小伙伴排行榜，整体马卡龙糖果色系。', ['每日 / 每周目标', '团子等级 + 图鉴收集', '好友排行榜'], dieCap(1)),
@@ -187,6 +236,22 @@ export const portfolioWorks: PortfolioWork[] = [
       { key: 'app', name: 'stack-high', desc: '抖音小游戏 · 4 屏', label: '抖音小游戏' },
     ],
     captures: stackCaptures,
+    status: 'published',
+  },
+  {
+    id: 'tick-off',
+    index: '04',
+    title: 'Tick Off',
+    subtitle: '下钟 · 打工人倒计时与打卡海报',
+    year: '2026',
+    cover: toolCap(1),
+    tagline: '昼夜主题 · 海报分享 · 打卡日记 · UniApp',
+    summary:
+      '面向打工人的轻量倒计时工具：UniApp 单端 5 屏实机截图。覆盖首页三种倒计时（上班 / 上课 / 发工资）、昼夜天空与狐狸 mascot、打卡海报生成与分享、GitHub 风格打卡日记，以及目标时间与提醒设置。',
+    clients: [
+      { key: 'app', name: 'count-app', desc: 'UniApp · 5 屏', label: '移动端' },
+    ],
+    captures: tickOffCaptures,
     status: 'published',
   },
 ]
