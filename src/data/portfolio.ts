@@ -130,6 +130,7 @@ const voidCaptures: CaptureSlide[] = [
 
 const dieCap = (n: number) => asset(`assets/games-die/${n}.png`)
 const toolCap = (n: number) => asset(`assets/tools/${n}.png`)
+const todoCap = (n: number) => asset(`assets/todo/${n}.jpg`)
 
 function mkTool(
   n: number,
@@ -140,6 +141,54 @@ function mkTool(
 ): CaptureSlide {
   return { image: toolCap(n), title, caption, detail, highlights, client: 'app' }
 }
+
+function mkTodo(
+  n: number,
+  title: string,
+  caption: string,
+  detail: string,
+  highlights: string[],
+): CaptureSlide {
+  return { image: todoCap(n), title, caption, detail, highlights, client: 'app' }
+}
+
+const focusFlowCaptures: CaptureSlide[] = [
+  mkTodo(
+    1,
+    '欢迎页',
+    '专注流 · 狐狸 mascot · 昵称进入',
+    '欢迎页「专注流」：淡紫渐变背景与浮动气泡，大号标题与副标题「专注当下，成就更多」，中央 3D 狐狸 mascot 持平板，底部「开始专注」主按钮与「使用昵称进入」链接，完成轻量 onboarding。',
+    ['品牌欢迎页', '3D 狐狸 mascot', '昵称 / 快速开始'],
+  ),
+  mkTodo(
+    2,
+    '专注计时',
+    '圆环进度 · 番茄钟 · 今日进度',
+    '专注 Tab：顶部「番茄钟模式」药丸入口，Canvas 圆角进度环内展示 24:52 倒计时与「全心专注中…」，环内狐狸 mascot，底部重置 / 暂停 / 跳过三键控制，下方今日进度卡 0/8 专注时段。',
+    ['圆角 Canvas 进度环', '番茄钟三键控制', '今日进度卡片'],
+  ),
+  mkTodo(
+    3,
+    '数据统计',
+    '日周月年 · 环形图 · 柱状图',
+    '统计 Tab：日 / 周 / 月 / 年 Segmented 切换，双卡展示专注时段与专注时长及较昨日趋势，环形图分布工作 / 学习 / 个人占比，底部每日专注时间柱状图，数据来自本地 Pinia 持久化。',
+    ['多维度时间筛选', '环形分布 + 柱状图', '本地存储统计'],
+  ),
+  mkTodo(
+    4,
+    '设置',
+    '番茄参数 · 主题色 · 提醒开关',
+    '设置 Tab：计时设置区滑块配置专注 25 分钟、短休 5 分钟、长休 15 分钟与每日目标 8 时段；外观区五色主题切换、深色模式与提示音 / 震动开关；关于区版本与评分入口。',
+    ['番茄钟参数滑块', '五色主题切换', '提醒与震动开关'],
+  ),
+  mkTodo(
+    5,
+    '任务管理',
+    '分类筛选 · 完成态 · FAB 添加',
+    '任务 Tab：全部 / 工作 / 学习 / 个人 Chip 筛选，任务卡展示分类 Tag、预计时长、星标与删除，已完成任务划线态，右下角 FAB 添加任务，支持编辑 / 删除 / 设为专注任务。',
+    ['四类任务筛选', '星标 + 删除操作', 'FAB 快速添加'],
+  ),
+]
 
 const tickOffCaptures: CaptureSlide[] = [
   mkTool(
@@ -259,6 +308,22 @@ export const portfolioWorks: PortfolioWork[] = [
       { key: 'app', name: 'count-app', desc: 'UniApp · 6 屏', label: '移动端' },
     ],
     captures: tickOffCaptures,
+    status: 'published',
+  },
+  {
+    id: 'focus-flow',
+    index: '05',
+    title: 'Focus Flow',
+    subtitle: '专注流 · 番茄钟与任务管理',
+    year: '2026',
+    cover: todoCap(2),
+    tagline: '番茄钟 · 任务 · 统计 · UniApp',
+    summary:
+      '面向个人效率的番茄钟 App：UniApp 单端 5 屏实机截图。覆盖欢迎 onboarding、Canvas 圆角进度环专注页、任务分类管理、日周月年数据统计，以及番茄参数与主题色设置；数据本地 Pinia 持久化，无需后端。',
+    clients: [
+      { key: 'app', name: 'todo-app', desc: 'UniApp · 5 屏', label: '移动端' },
+    ],
+    captures: focusFlowCaptures,
     status: 'published',
   },
 ]
